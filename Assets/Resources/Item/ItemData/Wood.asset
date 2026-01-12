@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 414fead154f29ff458097d6acf7d085c, type: 3}
+  m_Name: Wood
+  m_EditorClassIdentifier: 
+  itemName: Wood
+  itemIcon: {fileID: 846988303, guid: 8e962afd18d47ae4bb98c89025aa4e79, type: 3}
+  maxStack: 10
+  itemDescription: Wood is it
+  itemPrefab: {fileID: 1841183390826291749, guid: 26ccfc2da64a67f4da9a21aa5788ba33, type: 3}
