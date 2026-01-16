@@ -89,6 +89,15 @@ namespace KinematicCharacterController.Examples
         private Vector3 lastInnerNormal = Vector3.zero;
         private Vector3 lastOuterNormal = Vector3.zero;
 
+        [Header("Magnetic Boots")]
+        public bool magneticBootsEnabled = true;
+        public float surfaceTransitionSpeed = 8f;
+        public float surfaceDetectionDistance = 1.2f;
+        public LayerMask walkableLayers = -1;
+
+        private Vector3 targetUpDirection = Vector3.up;
+        private Vector3 previousCharacterUp = Vector3.up;
+
         private void Awake()
         {
             // Handle initial state
@@ -229,45 +238,65 @@ namespace KinematicCharacterController.Examples
             {
                 case CharacterState.Default:
                     {
-                        if (_lookInputVector.sqrMagnitude > 0f && OrientationSharpness > 0f)
-                        {
-                            // Smoothly interpolate from current to target look direction
-                            Vector3 smoothedLookInputDirection = Vector3.Slerp(Motor.CharacterForward, _lookInputVector, 1 - Mathf.Exp(-OrientationSharpness * deltaTime)).normalized;
+                        // 平滑旋转角色以对齐目标表面
+                        Vector3 currentUp = currentRotation * Vector3.up;
 
-                            // Set the current rotation (which will be used by the KinematicCharacterMotor)
-                            currentRotation = Quaternion.LookRotation(smoothedLookInputDirection, Motor.CharacterUp);
-                        }
+                        // 检查当前是否还在旋转过程中（角度差大于5度认为还在旋转）
+                        float angleToTarget = Vector3.Angle(currentUp, targetUpDirection);
+                        bool isStillRotating = angleToTarget > 5f;
 
-                        Vector3 currentUp = (currentRotation * Vector3.up);
-                        if (BonusOrientationMethod == BonusOrientationMethod.TowardsGravity)
+                        // 磁力鞋功能
+                        if (magneticBootsEnabled)
                         {
-                            // Rotate from current up to invert gravity
-                            Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, -Gravity.normalized, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                            currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
-                        }
-                        else if (BonusOrientationMethod == BonusOrientationMethod.TowardsGroundSlopeAndGravity)
-                        {
-                            if (Motor.GroundingStatus.IsStableOnGround)
+                            // 检测前方的可行走表面
+                            if (TryDetectWalkableSurface(out Vector3 detectedSurfaceUp))
                             {
-                                Vector3 initialCharacterBottomHemiCenter = Motor.TransientPosition + (currentUp * Motor.Capsule.radius);
-
-                                Vector3 smoothedGroundNormal = Vector3.Slerp(Motor.CharacterUp, Motor.GroundingStatus.GroundNormal, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                                currentRotation = Quaternion.FromToRotation(currentUp, smoothedGroundNormal) * currentRotation;
-
-                                // Move the position to create a rotation around the bottom hemi center instead of around the pivot
-                                Motor.SetTransientPosition(initialCharacterBottomHemiCenter + (currentRotation * Vector3.down * Motor.Capsule.radius));
+                                targetUpDirection = detectedSurfaceUp;
                             }
-                            else
+                            else if (!Motor.GroundingStatus.IsStableOnGround && !isStillRotating)
                             {
-                                Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, -Gravity.normalized, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                                currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
+                                // 在空中且未检测到表面且不在旋转 - 返回世界上方向
+                                //targetUpDirection = Vector3.up;
                             }
+                            else if (Motor.GroundingStatus.IsStableOnGround && !isStillRotating)
+                            {
+                                // 在稳定地面上且不在旋转 - 对齐到当前地面法线
+                                targetUpDirection = Motor.GroundingStatus.GroundNormal;
+                            }
+                            // 如果 isStillRotating = true，保持 targetUpDirection 不变，让旋转继续完成
                         }
                         else
                         {
-                            Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, Vector3.up, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                            currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
+                            // 磁力鞋关闭 - 始终使用世界上方向（正常重力）
+                            targetUpDirection = Vector3.up;
                         }
+
+                        Vector3 smoothedUp = Vector3.Slerp(
+                            currentUp,
+                            targetUpDirection,
+                            1f - Mathf.Exp(-surfaceTransitionSpeed * deltaTime)
+                        );
+
+                        // 计算从当前up到平滑up的旋转
+                        Quaternion upRotation = Quaternion.FromToRotation(currentUp, smoothedUp);
+                        currentRotation = upRotation * currentRotation;
+
+                        // 处理朝向（前进方向）
+                        if (_lookInputVector.sqrMagnitude > 0f && OrientationSharpness > 0f)
+                        {
+                            Vector3 smoothedLookDirection = Vector3.Slerp(
+                                Motor.CharacterForward,
+                                _lookInputVector,
+                                1f - Mathf.Exp(-OrientationSharpness * deltaTime)
+                            ).normalized;
+
+                            // 重构旋转：up固定，forward是朝向
+                            currentRotation = Quaternion.LookRotation(
+                                Vector3.ProjectOnPlane(smoothedLookDirection, smoothedUp),
+                                smoothedUp
+                            );
+                        }
+
                         break;
                     }
             }
@@ -342,8 +371,9 @@ namespace KinematicCharacterController.Examples
                                 currentVelocity += addedVelocity;
                             }
 
-                            // Gravity
-                            currentVelocity += Gravity * deltaTime;
+                            // Gravity - 在当前"上"方向的反方向应用重力
+                            Vector3 gravityDirection = -(Motor.CharacterUp);
+                            currentVelocity += gravityDirection * Gravity.magnitude * deltaTime;
 
                             // Drag
                             currentVelocity *= (1f / (1f + (Drag * deltaTime)));
@@ -383,6 +413,29 @@ namespace KinematicCharacterController.Examples
                             currentVelocity += _internalVelocityAdd;
                             _internalVelocityAdd = Vector3.zero;
                         }
+
+                        // 磁力鞋：在表面切换过程中防止"弹起"
+                        if (magneticBootsEnabled)
+                        {
+                            // 检测表面是否在快速切换（角度变化 > 2度）
+                            float angleChange = Vector3.Angle(Motor.CharacterUp, previousCharacterUp);
+                            if (angleChange > 2f)
+                            {
+                                // 正在旋转中 - 限制远离新表面的速度分量
+                                float velocityAwayFromSurface = Vector3.Dot(currentVelocity, Motor.CharacterUp);
+
+                                // 如果速度指向远离表面，限制这个分量
+                                if (velocityAwayFromSurface > 0f)
+                                {
+                                    // 移除远离表面的速度分量，保持切向速度
+                                    currentVelocity = Vector3.ProjectOnPlane(currentVelocity, Motor.CharacterUp);
+                                }
+                            }
+
+                            // 更新上一帧的 CharacterUp
+                            previousCharacterUp = Motor.CharacterUp;
+                        }
+
                         break;
                     }
             }
@@ -511,6 +564,62 @@ namespace KinematicCharacterController.Examples
 
         public void OnDiscreteCollisionDetected(Collider hitCollider)
         {
+        }
+
+        private bool TryDetectWalkableSurface(out Vector3 surfaceUp)
+        {
+            surfaceUp = Vector3.up;
+
+            if (!magneticBootsEnabled || _moveInputVector.sqrMagnitude < 0.01f)
+                return false;
+
+            Vector3 moveDirection = _moveInputVector.normalized;
+
+            // 检测1：前方+向下（检测前方的墙壁）
+            Vector3 castOrigin1 = Motor.TransientPosition + (Motor.CharacterUp * 0.5f);
+            Vector3 castDirection1 = (moveDirection + Motor.CharacterUp * -0.3f).normalized;
+
+            // 可视化射线1（红色）
+            Debug.DrawRay(castOrigin1, castDirection1 * surfaceDetectionDistance, Color.red, 0.1f);
+
+            if (Physics.Raycast(
+                castOrigin1,
+                castDirection1,
+                out RaycastHit hit1,
+                surfaceDetectionDistance,
+                walkableLayers,
+                QueryTriggerInteraction.Ignore))
+            {
+                // 显示命中点（绿色）
+                Debug.DrawLine(castOrigin1, hit1.point, Color.green, 0.1f);
+                Debug.DrawRay(hit1.point, hit1.normal * 0.5f, Color.yellow, 0.1f);
+                surfaceUp = hit1.normal;
+                return true;
+            }
+
+            // 检测2：在前方位置向下+向后（检测悬崖下方的墙壁）
+            Vector3 castOrigin2 = Motor.TransientPosition + (moveDirection * 1.0f) + (Motor.CharacterUp * 0.5f);
+            Vector3 castDirection2 = (-Motor.CharacterUp + -moveDirection * 0.5f).normalized;
+
+            // 可视化射线2（蓝色）
+            Debug.DrawRay(castOrigin2, castDirection2 * (surfaceDetectionDistance * 2f), Color.blue, 0.1f);
+
+            if (Physics.Raycast(
+                castOrigin2,
+                castDirection2,
+                out RaycastHit hit2,
+                surfaceDetectionDistance * 2f,
+                walkableLayers,
+                QueryTriggerInteraction.Ignore))
+            {
+                // 显示命中点（绿色）
+                Debug.DrawLine(castOrigin2, hit2.point, Color.green, 0.1f);
+                Debug.DrawRay(hit2.point, hit2.normal * 0.5f, Color.yellow, 0.1f);
+                surfaceUp = hit2.normal;
+                return true;
+            }
+
+            return false;
         }
     }
 }
