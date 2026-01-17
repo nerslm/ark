@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class InventoryItem : MonoBehaviour
 {
@@ -9,9 +10,13 @@ public class InventoryItem : MonoBehaviour
     public int onGridPositionX;
     public int onGridPositionY;
 
+    public int currentAmount = 1;
+
     internal void Set(ItemData itemData)
     {
         this.itemData = itemData;
+
+        currentAmount = 1;
 
         GetComponent<Image>().sprite = itemData.itemIcon;
 
