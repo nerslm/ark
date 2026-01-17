@@ -92,6 +92,8 @@ MonoBehaviour:
   itemData: {fileID: 0}
   onGridPositionX: 0
   onGridPositionY: 0
+  currentAmount: 1
+  itemCountText: {fileID: 8652605348058242368}
 --- !u!1 &5779696977824552358
 GameObject:
   m_ObjectHideFlags: 0

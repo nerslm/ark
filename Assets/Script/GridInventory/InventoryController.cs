@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-
 public class InventoryController : MonoBehaviour
 {
     public ItemGrid selectedItemGrid;
@@ -26,6 +25,11 @@ public class InventoryController : MonoBehaviour
 
     Highlighter highlighter;
 
+    // 记录来源网格
+    ItemGrid lastPickupGrid;
+    // --- 修复说明：这里记录的必须是物品的【左上角原点】，而不是鼠标点击的位置 ---
+    Vector2Int lastPickupOriginPosition;
+
     private void Awake()
     {
         highlighter = FindObjectOfType<Highlighter>();
@@ -38,19 +42,19 @@ public class InventoryController : MonoBehaviour
             rectTransform.position = Input.mousePosition;
         }
 
-
-
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            CreateRandomItem();
+            if (selectedItem == null)
+            {
+                CreateRandomItem();
+            }
         }
 
-
+        HandleScroll();
 
         if (selectedItemGrid == null)
         {
             highlighter.Show(false);
-            //Debug.Log("no grid selected");
             return;
         }
 
@@ -62,38 +66,160 @@ public class InventoryController : MonoBehaviour
 
             if (selectedItem == null)
             {
-                selectedItem = selectedItemGrid.PickupItem(tileGridPosition.x, tileGridPosition.y);
-                if (selectedItem != null)
-                {
-                    rectTransform = selectedItem.GetComponent<RectTransform>();
-                }
+                PickUpItem(tileGridPosition);
             }
             else
             {
-                bool complete = selectedItemGrid.PlaceItem(selectedItem, tileGridPosition.x, tileGridPosition.y, ref overlapItem);
-                if (complete)
-                {
-                    selectedItem = null;
-                    if (overlapItem != null)
-                    {
+                InventoryItem itemOnGrid = selectedItemGrid.GetItem(tileGridPosition.x, tileGridPosition.y);
 
-                        selectedItem = overlapItem;
-                        overlapItem = null;
-                        rectTransform = selectedItem.GetComponent<RectTransform>();
+                if (itemOnGrid != null)
+                {
+                    if (itemOnGrid.itemData == selectedItem.itemData)
+                    {
+                        int remaining = itemOnGrid.AddToStack(selectedItem.currentAmount);
+                        selectedItem.currentAmount = remaining;
+
+                        if (selectedItem.currentAmount == 0)
+                        {
+                            Destroy(selectedItem.gameObject);
+                            selectedItem = null;
+                            lastPickupGrid = null;
+                        }
+                        else
+                        {
+                            selectedItem.RefreshCount();
+                        }
+                    }
+                    else
+                    {
+                        return;
                     }
                 }
+                else
+                {
+                    PlaceItem(tileGridPosition);
+                }
             }
-
-            Debug.Log(selectedItemGrid.GetTileGridPosition(Input.mousePosition));
         }
+    }
 
+    private void HandleScroll()
+    {
+        if (selectedItem == null || lastPickupGrid == null) return;
+
+        float scroll = Input.mouseScrollDelta.y;
+        if (scroll == 0) return;
+
+        // --- 修复偏移：使用记录的【左上角原点】来获取或生成物品 ---
+        // 这样无论大物品多大，都会从它的左上角开始判断
+        InventoryItem itemAtSource = lastPickupGrid.GetItem(lastPickupOriginPosition.x, lastPickupOriginPosition.y);
+
+        if (scroll < 0)
+        {
+            if (selectedItem.currentAmount > 1)
+            {
+                if (itemAtSource == null)
+                {
+                    InventoryItem newItem = Instantiate(itemPrefab).GetComponent<InventoryItem>();
+                    newItem.Set(selectedItem.itemData);
+                    newItem.currentAmount = 1;
+                    InventoryItem tempOverlap = null;
+
+                    // --- 修复偏移：放置到原本的左上角位置 ---
+                    lastPickupGrid.PlaceItem(newItem, lastPickupOriginPosition.x, lastPickupOriginPosition.y, ref tempOverlap);
+                }
+                else
+                {
+                    if (itemAtSource.itemData == selectedItem.itemData)
+                    {
+                        if (itemAtSource.currentAmount < itemAtSource.itemData.maxamount)
+                        {
+                            itemAtSource.currentAmount++;
+                            itemAtSource.RefreshCount();
+                        }
+                        else return;
+                    }
+                    else return;
+                }
+
+                selectedItem.currentAmount--;
+                selectedItem.RefreshCount();
+            }
+        }
+        else if (scroll > 0)
+        {
+            if (itemAtSource != null && itemAtSource.itemData == selectedItem.itemData)
+            {
+                if (selectedItem.currentAmount < selectedItem.itemData.maxamount)
+                {
+                    itemAtSource.currentAmount--;
+                    selectedItem.currentAmount++;
+
+                    if (itemAtSource.currentAmount <= 0)
+                    {
+                        // --- 修复偏移：移除时也使用左上角坐标 ---
+                        lastPickupGrid.PickupItem(lastPickupOriginPosition.x, lastPickupOriginPosition.y);
+                        Destroy(itemAtSource.gameObject);
+                    }
+                    else
+                    {
+                        itemAtSource.RefreshCount();
+                    }
+
+                    selectedItem.RefreshCount();
+                }
+            }
+        }
+    }
+
+    private void PickUpItem(Vector2Int tileGridPosition)
+    {
+        // 此时 tileGridPosition 是鼠标点击的位置（可能是大物品的中间）
+        // 我们先通过这个位置找到物品
+        InventoryItem targetItem = selectedItemGrid.GetItem(tileGridPosition.x, tileGridPosition.y);
+
+        // 如果找到了物品，先记录下它的真实原点（左上角），然后再把它拿起来
+        if (targetItem != null)
+        {
+            // --- 修复偏移关键点：记录物品自身的Grid坐标，而不是鼠标坐标 ---
+            lastPickupOriginPosition = new Vector2Int(targetItem.onGridPositionX, targetItem.onGridPositionY);
+            lastPickupGrid = selectedItemGrid;
+
+            // 执行实际的 Pickup 操作（这会把物品从 Grid 移除）
+            selectedItem = selectedItemGrid.PickupItem(tileGridPosition.x, tileGridPosition.y);
+
+            if (selectedItem != null)
+            {
+                rectTransform = selectedItem.GetComponent<RectTransform>();
+            }
+        }
+    }
+
+    private void PlaceItem(Vector2Int tileGridPosition)
+    {
+        bool complete = selectedItemGrid.PlaceItem(selectedItem, tileGridPosition.x, tileGridPosition.y, ref overlapItem);
+        if (complete)
+        {
+            selectedItem = null;
+            lastPickupGrid = null;
+
+            if (overlapItem != null)
+            {
+                selectedItem = overlapItem;
+                rectTransform = selectedItem.GetComponent<RectTransform>();
+
+                // --- 修复偏移：如果是交换（虽然现在逻辑禁用了交换，但留着也没错）---
+                // 记录新拿起来的物品的左上角
+                lastPickupGrid = selectedItemGrid;
+                lastPickupOriginPosition = new Vector2Int(selectedItem.onGridPositionX, selectedItem.onGridPositionY);
+            }
+        }
     }
 
     private Vector2Int GetTargetGridPosition()
     {
         Vector2 position = Input.mousePosition;
 
-        // 如果手里抓着东西，应用偏移量
         if (selectedItem != null)
         {
             position.x -= (selectedItem.itemData.width - 1) * ItemGrid.tileSizeWidth / 2;
@@ -110,53 +236,40 @@ public class InventoryController : MonoBehaviour
     {
         Vector2Int positionOnGrid = GetTargetGridPosition();
 
-        // 优化：如果是普通网格，才检查旧位置优化；装备栏不需要这个优化（因为它只有一个位置）
         if (selectedItemGrid.isEquipmentSlot == false)
         {
             if (positionOnGrid == oldPosition) { return; }
             oldPosition = positionOnGrid;
         }
 
-        // --- 分支逻辑 ---
-
-        // 情况 A：如果是装备栏
         if (selectedItemGrid.isEquipmentSlot)
         {
-            // 获取装备栏里的物品（装备栏固定在 0,0）
             InventoryItem itemInSlot = selectedItemGrid.GetItem(0, 0);
 
-            // 逻辑：如果手里拿着东西 OR 装备栏里有东西，都显示高亮
             if (selectedItem != null || itemInSlot != null)
             {
                 highlighter.Show(true);
-
-                // 装备栏高亮通常是高亮整个框，而不是里面的物体
                 RectTransform slotRect = selectedItemGrid.GetComponent<RectTransform>();
                 highlighter.SetSize(slotRect.rect.size);
                 highlighter.SetPositionToCenter(selectedItemGrid);
             }
             else
             {
-                // 手里没东西，装备栏也是空的 -> 隐藏
                 highlighter.Show(false);
             }
         }
-        // 情况 B：如果是普通网格 (逻辑保持不变)
         else
         {
             if (selectedItem == null)
             {
-                // --- 修复开始 ---
-                // 检查鼠标位置是否在网格范围内 (宽1高1代表只查单格)
                 bool isValidPosition = selectedItemGrid.BoundryCheck(positionOnGrid.x, positionOnGrid.y, 1, 1);
 
                 if (!isValidPosition)
                 {
                     highlighter.Show(false);
-                    return; // 如果越界，直接跳出，不执行 GetItem
+                    return;
                 }
-                // --- 修复结束 ---
-                // 手里没东西：高亮鼠标指向的网格里的物品（提示可捡起）
+
                 itemToHighlight = selectedItemGrid.GetItem(positionOnGrid.x, positionOnGrid.y);
                 if (itemToHighlight != null)
                 {
@@ -171,9 +284,7 @@ public class InventoryController : MonoBehaviour
             }
             else
             {
-                // 手里有东西：高亮物品将要放置的位置（提示占用区域）
                 highlighter.Show(selectedItemGrid.BoundryCheck(positionOnGrid.x, positionOnGrid.y, selectedItem.itemData.width, selectedItem.itemData.height));
-
                 highlighter.SetSize(selectedItem);
                 highlighter.SetPosition(selectedItemGrid, selectedItem, positionOnGrid.x, positionOnGrid.y);
             }
@@ -190,5 +301,10 @@ public class InventoryController : MonoBehaviour
 
         int selectedItemID = UnityEngine.Random.Range(0, items.Count);
         inventoryItem.Set(items[selectedItemID]);
+
+        inventoryItem.currentAmount = UnityEngine.Random.Range(2, 5);
+        inventoryItem.RefreshCount();
+
+        lastPickupGrid = null;
     }
 }
