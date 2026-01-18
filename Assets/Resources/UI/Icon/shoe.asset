@@ -17,3 +17,5 @@ MonoBehaviour:
   itemIcon: {fileID: 21300000, guid: 8acfdb87041c143089569d446383a47d, type: 3}
   maxamount: 1
   itemType: 4
+  moveSpeedBonus: 0
+  isMagneticBoots: 1
