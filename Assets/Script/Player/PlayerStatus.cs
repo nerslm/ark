@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
-
+using KinematicCharacterController.Examples;
+//作为玩家状态管理的脚本，负责处理生命值、氧气、食物和水分等状态的变化，以及是否穿着有特殊效果的装备，磁力鞋等等
 public class PlayerStatus : MonoBehaviour
 {
     [Header("===== 最大值设置 =====")]
@@ -22,6 +23,8 @@ public class PlayerStatus : MonoBehaviour
 
     public MonoBehaviour deathScreen;
 
+    [Header("=====装备状态=====")]
+
     // ==================== 私有字段 ====================
     private float _currentHealth;
     private float _currentOxygen;
@@ -29,6 +32,10 @@ public class PlayerStatus : MonoBehaviour
     private float _currentWater;
 
     private bool _isDead = false;
+
+    [Header("=====装备状态所需的外部引用=====")]
+
+    public ExampleCharacterController characterController;
 
     // ==================== 属性（自动更新UI）====================
 
@@ -240,5 +247,54 @@ public class PlayerStatus : MonoBehaviour
         if (oxygen != 0) CurrentOxygen += oxygen;
         if (food != 0) CurrentFood += food;
         if (water != 0) CurrentWater += water;
+    }
+
+    // --- 供外部调用的方法：穿装备 ---
+    public void EquipItem(ItemData item)
+    {
+        Debug.Log($"装备了: {item.name}");
+
+        {
+            Debug.Log($"装备了: {item.name}");
+
+            // 1. 确保我们要控制的脚本已经赋值
+            if (characterController != null)
+            {
+                // 2. 如果装备是磁力鞋
+                if (item.isMagneticBoots)
+                {
+                    // 【关键修改3】修改 ExampleCharacterController 中的布尔值
+                    characterController.magneticBootsEnabled = true;
+                    Debug.Log("磁力鞋功能已开启 (ExampleCharacterController)");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("PlayerStatus: Character Controller 未赋值，无法启用磁力鞋！");
+            }
+        }
+
+        // 这里可以使用简单的累加，也可以用列表存起来
+        // 为了演示简单，我们直接修改属性，或者你可以触发一次“重新计算所有属性”
+
+    }
+
+    // --- 供外部调用的方法：脱装备 ---
+    public void UnequipItem(ItemData item)
+    {
+        Debug.Log($"脱下了: {item.name}");
+
+        if (characterController != null)
+        {
+            if (item.isMagneticBoots)
+            {
+                // 【关键修改4】关闭功能
+                characterController.magneticBootsEnabled = false;
+                Debug.Log("磁力鞋功能已关闭 (ExampleCharacterController)");
+            }
+        }
+        // 这里可以使用简单的累加，也可以用列表存起来
+        // 为了演示简单，我们直接修改属性，或者你可以触发一次“重新计算所有属性”
+
     }
 }

@@ -15,6 +15,10 @@ public class ItemGrid : MonoBehaviour
     [SerializeField] int gridSizeWidth = 20;
     [SerializeField] int gridSizeHeight = 10;
 
+    [Header("Equipment Link")]
+    // --- 新增：如果是装备栏，请把场景里的 Player 拖进去 ---
+    [SerializeField] PlayerStatus playerStatus;
+
     private void Start()
     {
         rectTransform = GetComponent<RectTransform>();
@@ -86,6 +90,12 @@ public class ItemGrid : MonoBehaviour
             itemRect.localPosition = Vector2.zero;
             float scale = CalculateScale(inventoryItem);
             itemRect.localScale = new Vector3(scale, scale, 1);
+            // --- 新增：如果是装备栏，且放置成功，说明是“穿上” ---
+            if (playerStatus != null)
+            {
+                playerStatus.EquipItem(inventoryItem.itemData);
+            }
+            // -----------------------------------------------------
         }
         else
         {
@@ -128,6 +138,13 @@ public class ItemGrid : MonoBehaviour
         InventoryItem toReturn = inventoryItemSlot[targetX, targetY];
 
         if (toReturn == null) { return null; }
+
+        // --- 新增：如果是装备栏，且拿起了东西，说明是“脱下” ---
+        if (isEquipmentSlot && playerStatus != null)
+        {
+            playerStatus.UnequipItem(toReturn.itemData);
+        }
+        // -----------------------------------------------------
 
         cleanGridReference(toReturn);
 

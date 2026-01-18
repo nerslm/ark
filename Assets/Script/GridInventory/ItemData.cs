@@ -12,6 +12,13 @@ public class ItemData : ScriptableObject
     public int maxamount = 1;
 
     public ItemType itemType;
+
+    [Header("Attributes / Buffs")]
+    // 比如：移动速度加成 (0 = 没加成, 2 = 加2点速度)
+    public float moveSpeedBonus;
+
+    [Header("特殊效果")]
+    public bool isMagneticBoots = false; // 磁力鞋
 }
 
 public enum ItemType
