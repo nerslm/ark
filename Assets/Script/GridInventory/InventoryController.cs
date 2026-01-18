@@ -16,7 +16,7 @@ public class InventoryController : MonoBehaviour
     }
 
     InventoryItem selectedItem;
-    InventoryItem overlapItem;
+    // Removed: InventoryItem overlapItem; // 不再需要，删除了交换功能
     RectTransform rectTransform;
 
     [SerializeField] List<ItemData> items;
@@ -25,9 +25,7 @@ public class InventoryController : MonoBehaviour
 
     Highlighter highlighter;
 
-    // 记录来源网格
     ItemGrid lastPickupGrid;
-    // --- 修复说明：这里记录的必须是物品的【左上角原点】，而不是鼠标点击的位置 ---
     Vector2Int lastPickupOriginPosition;
 
     private void Awake()
@@ -44,10 +42,7 @@ public class InventoryController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            if (selectedItem == null)
-            {
-                CreateRandomItem();
-            }
+            if (selectedItem == null) CreateRandomItem();
         }
 
         HandleScroll();
@@ -64,16 +59,32 @@ public class InventoryController : MonoBehaviour
         {
             Vector2Int tileGridPosition = GetTargetGridPosition();
 
+            // --- 捡起逻辑 ---
             if (selectedItem == null)
             {
                 PickUpItem(tileGridPosition);
             }
+            // --- 放置逻辑 (已删除交换) ---
             else
             {
-                InventoryItem itemOnGrid = selectedItemGrid.GetItem(tileGridPosition.x, tileGridPosition.y);
+                // 1. 检查装备类型是否匹配
+                if (selectedItemGrid.CanPlaceItem(selectedItem) == false)
+                {
+                    Debug.Log("类型不匹配");
+                    return;
+                }
+
+                // 2. 检查目标区域是否有物体 (解决大物体锚点偏差问题)
+                InventoryItem itemOnGrid = selectedItemGrid.GetItemInArea(
+                    tileGridPosition.x,
+                    tileGridPosition.y,
+                    selectedItem.itemData.width,
+                    selectedItem.itemData.height
+                );
 
                 if (itemOnGrid != null)
                 {
+                    // 区域内有物体 -> 只能堆叠，不能交换
                     if (itemOnGrid.itemData == selectedItem.itemData)
                     {
                         int remaining = itemOnGrid.AddToStack(selectedItem.currentAmount);
@@ -92,14 +103,29 @@ public class InventoryController : MonoBehaviour
                     }
                     else
                     {
+                        // 区域有物体，且无法堆叠 -> 什么都不做 (禁止交换)
                         return;
                     }
                 }
                 else
                 {
+                    // 区域完全为空 -> 直接放置
                     PlaceItem(tileGridPosition);
                 }
             }
+        }
+    }
+
+    private void PlaceItem(Vector2Int tileGridPosition)
+    {
+        // 这里的 PlaceItem 现在非常纯粹，只负责放，如果 Grid 判定不能放(比如有隐藏冲突)，返回 false
+        bool complete = selectedItemGrid.PlaceItem(selectedItem, tileGridPosition.x, tileGridPosition.y);
+
+        if (complete)
+        {
+            selectedItem = null;
+            lastPickupGrid = null;
+            // 删除了 overlapItem 的处理逻辑
         }
     }
 
@@ -110,8 +136,6 @@ public class InventoryController : MonoBehaviour
         float scroll = Input.mouseScrollDelta.y;
         if (scroll == 0) return;
 
-        // --- 修复偏移：使用记录的【左上角原点】来获取或生成物品 ---
-        // 这样无论大物品多大，都会从它的左上角开始判断
         InventoryItem itemAtSource = lastPickupGrid.GetItem(lastPickupOriginPosition.x, lastPickupOriginPosition.y);
 
         if (scroll < 0)
@@ -120,13 +144,16 @@ public class InventoryController : MonoBehaviour
             {
                 if (itemAtSource == null)
                 {
-                    InventoryItem newItem = Instantiate(itemPrefab).GetComponent<InventoryItem>();
-                    newItem.Set(selectedItem.itemData);
-                    newItem.currentAmount = 1;
-                    InventoryItem tempOverlap = null;
+                    // 在创建新分身前，也最好检查一次 CanPlaceItem（虽然通常是合法的）
+                    if (lastPickupGrid.CanPlaceItem(selectedItem))
+                    {
+                        InventoryItem newItem = Instantiate(itemPrefab).GetComponent<InventoryItem>();
+                        newItem.Set(selectedItem.itemData);
+                        newItem.currentAmount = 1;
 
-                    // --- 修复偏移：放置到原本的左上角位置 ---
-                    lastPickupGrid.PlaceItem(newItem, lastPickupOriginPosition.x, lastPickupOriginPosition.y, ref tempOverlap);
+                        // PlaceItem 不再需要 ref 参数
+                        lastPickupGrid.PlaceItem(newItem, lastPickupOriginPosition.x, lastPickupOriginPosition.y);
+                    }
                 }
                 else
                 {
@@ -157,7 +184,6 @@ public class InventoryController : MonoBehaviour
 
                     if (itemAtSource.currentAmount <= 0)
                     {
-                        // --- 修复偏移：移除时也使用左上角坐标 ---
                         lastPickupGrid.PickupItem(lastPickupOriginPosition.x, lastPickupOriginPosition.y);
                         Destroy(itemAtSource.gameObject);
                     }
@@ -174,44 +200,18 @@ public class InventoryController : MonoBehaviour
 
     private void PickUpItem(Vector2Int tileGridPosition)
     {
-        // 此时 tileGridPosition 是鼠标点击的位置（可能是大物品的中间）
-        // 我们先通过这个位置找到物品
         InventoryItem targetItem = selectedItemGrid.GetItem(tileGridPosition.x, tileGridPosition.y);
 
-        // 如果找到了物品，先记录下它的真实原点（左上角），然后再把它拿起来
         if (targetItem != null)
         {
-            // --- 修复偏移关键点：记录物品自身的Grid坐标，而不是鼠标坐标 ---
             lastPickupOriginPosition = new Vector2Int(targetItem.onGridPositionX, targetItem.onGridPositionY);
             lastPickupGrid = selectedItemGrid;
 
-            // 执行实际的 Pickup 操作（这会把物品从 Grid 移除）
             selectedItem = selectedItemGrid.PickupItem(tileGridPosition.x, tileGridPosition.y);
 
             if (selectedItem != null)
             {
                 rectTransform = selectedItem.GetComponent<RectTransform>();
-            }
-        }
-    }
-
-    private void PlaceItem(Vector2Int tileGridPosition)
-    {
-        bool complete = selectedItemGrid.PlaceItem(selectedItem, tileGridPosition.x, tileGridPosition.y, ref overlapItem);
-        if (complete)
-        {
-            selectedItem = null;
-            lastPickupGrid = null;
-
-            if (overlapItem != null)
-            {
-                selectedItem = overlapItem;
-                rectTransform = selectedItem.GetComponent<RectTransform>();
-
-                // --- 修复偏移：如果是交换（虽然现在逻辑禁用了交换，但留着也没错）---
-                // 记录新拿起来的物品的左上角
-                lastPickupGrid = selectedItemGrid;
-                lastPickupOriginPosition = new Vector2Int(selectedItem.onGridPositionX, selectedItem.onGridPositionY);
             }
         }
     }
@@ -245,8 +245,9 @@ public class InventoryController : MonoBehaviour
         if (selectedItemGrid.isEquipmentSlot)
         {
             InventoryItem itemInSlot = selectedItemGrid.GetItem(0, 0);
+            bool typeMatches = selectedItem != null && selectedItemGrid.CanPlaceItem(selectedItem);
 
-            if (selectedItem != null || itemInSlot != null)
+            if (typeMatches || (selectedItem == null && itemInSlot != null))
             {
                 highlighter.Show(true);
                 RectTransform slotRect = selectedItemGrid.GetComponent<RectTransform>();
@@ -263,7 +264,6 @@ public class InventoryController : MonoBehaviour
             if (selectedItem == null)
             {
                 bool isValidPosition = selectedItemGrid.BoundryCheck(positionOnGrid.x, positionOnGrid.y, 1, 1);
-
                 if (!isValidPosition)
                 {
                     highlighter.Show(false);

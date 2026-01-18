@@ -7,6 +7,7 @@ public class ItemGrid : MonoBehaviour
 
     [Header("Configuration")]
     [SerializeField] public bool isEquipmentSlot = false;
+    [SerializeField] public ItemType equipmentType;
 
     InventoryItem[,] inventoryItemSlot;
     RectTransform rectTransform;
@@ -39,19 +40,84 @@ public class ItemGrid : MonoBehaviour
         }
     }
 
-    Vector2 positionOnTheGrid = new Vector2();
-    Vector2Int tileGridPosition = new Vector2Int();
-
-    public Vector2Int GetTileGridPosition(Vector2 mousePosition)
+    // --- 核心修改：精简后的放置逻辑，不再处理交换 ---
+    public bool PlaceItem(InventoryItem inventoryItem, int posX, int posY)
     {
-        if (isEquipmentSlot) return new Vector2Int(0, 0);
+        if (!isEquipmentSlot)
+        {
+            // 1. 边界检查
+            if (BoundryCheck(posX, posY, inventoryItem.itemData.width, inventoryItem.itemData.height) == false)
+            {
+                return false;
+            }
+        }
 
-        positionOnTheGrid.x = mousePosition.x - rectTransform.position.x;
-        positionOnTheGrid.y = rectTransform.position.y - mousePosition.y;
+        int targetX = isEquipmentSlot ? 0 : posX;
+        int targetY = isEquipmentSlot ? 0 : posY;
 
-        tileGridPosition.x = (int)(positionOnTheGrid.x / tileSizeWidth);
-        tileGridPosition.y = (int)(positionOnTheGrid.y / tileSizeHeight);
-        return tileGridPosition;
+        // 2. 碰撞检查：只要区域内有任何东西，就禁止放置（返回 false）
+        if (IsAreaClean(targetX, targetY, inventoryItem.itemData.width, inventoryItem.itemData.height) == false)
+        {
+            return false;
+        }
+
+        // 3. 执行放置
+        RectTransform itemRect = inventoryItem.GetComponent<RectTransform>();
+        itemRect.SetParent(this.rectTransform);
+
+        int loopWidth = isEquipmentSlot ? 1 : inventoryItem.itemData.width;
+        int loopHeight = isEquipmentSlot ? 1 : inventoryItem.itemData.height;
+
+        for (int x = 0; x < loopWidth; x++)
+        {
+            for (int y = 0; y < loopHeight; y++)
+            {
+                inventoryItemSlot[targetX + x, targetY + y] = inventoryItem;
+            }
+        }
+
+        inventoryItem.onGridPositionX = targetX;
+        inventoryItem.onGridPositionY = targetY;
+
+        itemRect.pivot = new Vector2(0.5f, 0.5f);
+
+        if (isEquipmentSlot)
+        {
+            itemRect.localPosition = Vector2.zero;
+            float scale = CalculateScale(inventoryItem);
+            itemRect.localScale = new Vector3(scale, scale, 1);
+        }
+        else
+        {
+            itemRect.localScale = Vector3.one;
+            itemRect.localPosition = CalculatePositionOnGrid(inventoryItem, targetX, targetY);
+        }
+
+        return true;
+    }
+
+    // --- 新增：简单的区域干净检查 ---
+    // 返回 true 表示全是空的，可以放
+    private bool IsAreaClean(int posX, int posY, int width, int height)
+    {
+        int checkWidth = isEquipmentSlot ? 1 : width;
+        int checkHeight = isEquipmentSlot ? 1 : height;
+
+        for (int x = 0; x < checkWidth; x++)
+        {
+            for (int y = 0; y < checkHeight; y++)
+            {
+                if (posX + x < inventoryItemSlot.GetLength(0) && posY + y < inventoryItemSlot.GetLength(1))
+                {
+                    // 只要发现任何非空格子，直接判定为不干净
+                    if (inventoryItemSlot[posX + x, posY + y] != null)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     public InventoryItem PickupItem(int posX, int posY)
@@ -74,10 +140,8 @@ public class ItemGrid : MonoBehaviour
         return toReturn;
     }
 
-    // --- 修改 1：清除引用时，如果是装备栏，只清除 [0,0] ---
     private void cleanGridReference(InventoryItem item)
     {
-        // 关键逻辑：如果是装备栏，循环只跑 1 次；否则跑物品的宽/高次
         int loopWidth = isEquipmentSlot ? 1 : item.itemData.width;
         int loopHeight = isEquipmentSlot ? 1 : item.itemData.height;
 
@@ -90,76 +154,44 @@ public class ItemGrid : MonoBehaviour
         }
     }
 
-    public bool PlaceItem(InventoryItem inventoryItem, int posX, int posY, ref InventoryItem overlapItem)
+    // --- Controller 用于堆叠判断的辅助方法 ---
+    public InventoryItem GetItemInArea(int posX, int posY, int width, int height)
     {
-        if (!isEquipmentSlot)
+        if (isEquipmentSlot) return inventoryItemSlot[0, 0];
+
+        for (int x = 0; x < width; x++)
         {
-            if (BoundryCheck(posX, posY, inventoryItem.itemData.width, inventoryItem.itemData.height) == false)
+            for (int y = 0; y < height; y++)
             {
-                Debug.Log("Out of Boundry");
-                return false;
+                int targetX = posX + x;
+                int targetY = posY + y;
+
+                if (targetX < 0 || targetX >= gridSizeWidth || targetY < 0 || targetY >= gridSizeHeight) continue;
+
+                if (inventoryItemSlot[targetX, targetY] != null)
+                {
+                    return inventoryItemSlot[targetX, targetY];
+                }
             }
         }
-
-        int targetX = isEquipmentSlot ? 0 : posX;
-        int targetY = isEquipmentSlot ? 0 : posY;
-
-        if (OverlapCheck(targetX, targetY, inventoryItem.itemData.width, inventoryItem.itemData.height, ref overlapItem) == false)
-        {
-            Debug.Log("Overlap Detected");
-            overlapItem = null;
-            return false;
-        }
-
-        if (overlapItem != null)
-        {
-            cleanGridReference(overlapItem);
-        }
-
-        RectTransform itemRect = inventoryItem.GetComponent<RectTransform>();
-        itemRect.SetParent(this.rectTransform);
-
-        // --- 修改 2：填充数组时，如果是装备栏，只填充 [0,0] ---
-        int loopWidth = isEquipmentSlot ? 1 : inventoryItem.itemData.width;
-        int loopHeight = isEquipmentSlot ? 1 : inventoryItem.itemData.height;
-
-        for (int x = 0; x < loopWidth; x++)
-        {
-            for (int y = 0; y < loopHeight; y++)
-            {
-                inventoryItemSlot[targetX + x, targetY + y] = inventoryItem;
-            }
-        }
-
-        inventoryItem.onGridPositionX = targetX;
-        inventoryItem.onGridPositionY = targetY;
-
-        itemRect.pivot = new Vector2(0.5f, 0.5f);
-
-        if (isEquipmentSlot)
-        {
-            itemRect.localPosition = Vector2.zero;
-
-            float scale = CalculateScale(inventoryItem);
-            itemRect.localScale = new Vector3(scale, scale, 1);
-        }
-        else
-        {
-            itemRect.localScale = Vector3.one;
-            itemRect.localPosition = CalculatePositionOnGrid(inventoryItem, targetX, targetY);
-        }
-
-        return true;
+        return null;
     }
 
+    // --- 验证类型 ---
+    public bool CanPlaceItem(InventoryItem item)
+    {
+        if (isEquipmentSlot == false) return true;
+        if (item.itemData.itemType == equipmentType) return true;
+        return false;
+    }
+
+    // --- 辅助计算 ---
     private float CalculateScale(InventoryItem item)
     {
         float slotW = rectTransform.rect.width;
         float slotH = rectTransform.rect.height;
-
         float itemW = item.itemData.width * tileSizeWidth;
         float itemH = item.itemData.height * tileSizeHeight;
-
         return Mathf.Min(slotW / itemW, slotH / itemH) * 0.95f;
     }
 
@@ -171,38 +203,21 @@ public class ItemGrid : MonoBehaviour
         return position;
     }
 
-    private bool OverlapCheck(int posX, int posY, int width, int height, ref InventoryItem overlapItem)
+    public Vector2Int GetTileGridPosition(Vector2 mousePosition)
     {
-        int checkWidth = isEquipmentSlot ? 1 : width;
-        int checkHeight = isEquipmentSlot ? 1 : height;
+        if (isEquipmentSlot) return new Vector2Int(0, 0);
 
-        for (int x = 0; x < checkWidth; x++)
-        {
-            for (int y = 0; y < checkHeight; y++)
-            {
-                // 加上安全检查，虽然前面的 Init 和 LoopWidth 配合好应该不会越界，但双重保险
-                if (posX + x < inventoryItemSlot.GetLength(0) && posY + y < inventoryItemSlot.GetLength(1))
-                {
-                    if (inventoryItemSlot[posX + x, posY + y] != null)
-                    {
-                        if (overlapItem == null)
-                        {
-                            overlapItem = inventoryItemSlot[posX + x, posY + y];
-                        }
-                        else
-                        {
-                            if (overlapItem != inventoryItemSlot[posX + x, posY + y])
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return true;
+        Vector2 positionOnTheGrid = new Vector2();
+        positionOnTheGrid.x = mousePosition.x - rectTransform.position.x;
+        positionOnTheGrid.y = rectTransform.position.y - mousePosition.y;
+
+        Vector2Int tileGridPosition = new Vector2Int();
+        tileGridPosition.x = (int)(positionOnTheGrid.x / tileSizeWidth);
+        tileGridPosition.y = (int)(positionOnTheGrid.y / tileSizeHeight);
+        return tileGridPosition;
     }
 
+    // 边界检查保持不变
     bool PositionCheck(int X, int Y)
     {
         if (X < 0 || Y < 0) return false;
@@ -213,14 +228,10 @@ public class ItemGrid : MonoBehaviour
     public bool BoundryCheck(int X, int Y, int width, int height)
     {
         if (isEquipmentSlot) return true;
-
         if (PositionCheck(X, Y) == false) return false;
-
         X += width - 1;
         Y += height - 1;
-
         if (PositionCheck(X, Y) == false) return false;
-
         return true;
     }
 
@@ -228,5 +239,12 @@ public class ItemGrid : MonoBehaviour
     {
         if (isEquipmentSlot) return inventoryItemSlot[0, 0];
         return inventoryItemSlot[x, y];
+    }
+
+    // 堆叠接口
+    public int AddToStack(InventoryItem item, int amountToAdd)
+    {
+        // 装备栏等无法堆叠的逻辑在Controller控制，这里只是为了兼容性
+        return 0;
     }
 }

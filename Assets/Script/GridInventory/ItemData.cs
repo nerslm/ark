@@ -10,4 +10,15 @@ public class ItemData : ScriptableObject
     public Sprite itemIcon;
 
     public int maxamount = 1;
+
+    public ItemType itemType;
+}
+
+public enum ItemType
+{
+    General,    // 普通物品（杂物、消耗品等，任何格子都能放）
+    Weapon,     // 武器
+    Head,       // 头盔
+    Chest,      // 胸甲
+    Feet        // 鞋子
 }
