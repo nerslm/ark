@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: ed5d47ee8acb47b4f95f5108967c75d5
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Oceanic/Materials/Planet_Oceanic_01.mat
+  uploadId: 706029

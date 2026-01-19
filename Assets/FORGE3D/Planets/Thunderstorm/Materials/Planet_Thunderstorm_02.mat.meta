@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 43788279768861049b956a398b92876a
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Thunderstorm/Materials/Planet_Thunderstorm_02.mat
+  uploadId: 706029

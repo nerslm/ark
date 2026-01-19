@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 47a01f040af095244bb835ecea1f2a4d
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Sun/Materials/Sun_Atmopshere_Red.mat
+  uploadId: 706029

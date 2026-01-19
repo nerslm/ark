@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: a8ac18a6af8d68f48acd8f44007c4169
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Gas/Materials/Planet_Ring_Gas_04.mat
+  uploadId: 706029

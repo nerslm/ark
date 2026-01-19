@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 04c8c7ca439ce9149b687f950b45e3ac
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Sun/Materials/Sun_Red_01.mat
+  uploadId: 706029

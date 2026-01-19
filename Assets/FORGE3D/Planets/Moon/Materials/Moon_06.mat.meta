@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: afd968988057ea245900971df0c72771
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Moon/Materials/Moon_06.mat
+  uploadId: 706029

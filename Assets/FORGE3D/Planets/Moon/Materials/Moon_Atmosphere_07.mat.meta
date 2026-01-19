@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: af8118c94992c6b46a6a2faebb1bf969
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Moon/Materials/Moon_Atmosphere_07.mat
+  uploadId: 706029

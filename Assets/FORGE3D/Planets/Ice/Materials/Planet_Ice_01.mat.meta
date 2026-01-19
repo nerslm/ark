@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 5c1310810ad1f714f9c901b899f1a0cb
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Ice/Materials/Planet_Ice_01.mat
+  uploadId: 706029

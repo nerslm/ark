@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 41b3322d7293cc345afc48a89b1f3741
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Gas/Materials/Gas_Atmosphere_B 4.mat
+  uploadId: 706029

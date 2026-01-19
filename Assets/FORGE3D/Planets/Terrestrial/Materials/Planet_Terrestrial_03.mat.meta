@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 904cdd2a11aff874e9415f0701c75e6b
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Terrestrial/Materials/Planet_Terrestrial_03.mat
+  uploadId: 706029

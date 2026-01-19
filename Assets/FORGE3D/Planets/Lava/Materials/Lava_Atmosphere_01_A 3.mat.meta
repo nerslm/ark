@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 406d2a07eebd498449ba31d5f39fa4ba
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Lava/Materials/Lava_Atmosphere_01_A 3.mat
+  uploadId: 706029

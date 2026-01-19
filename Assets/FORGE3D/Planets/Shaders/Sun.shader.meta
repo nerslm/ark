@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 186a3fbe36413fc4ea7e2acc9087d65f
+labels:
+- Shader
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Shaders/Sun.shader
+  uploadId: 706029
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

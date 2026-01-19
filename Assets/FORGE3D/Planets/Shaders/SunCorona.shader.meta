@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 070cdeae044c8cf41adfa6cb2284ac36
+labels:
+- Shader
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Shaders/SunCorona.shader
+  uploadId: 706029
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

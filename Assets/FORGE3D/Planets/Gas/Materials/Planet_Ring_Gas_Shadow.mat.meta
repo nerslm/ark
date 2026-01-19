@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 081546de1f14c30448c8e76255b30324
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Gas/Materials/Planet_Ring_Gas_Shadow.mat
+  uploadId: 706029

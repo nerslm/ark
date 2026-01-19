@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 0dce7c71047c6034db118f3ee072955d
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Thunderstorm/Materials/Thunderstorm_Atmopshere_03_A.mat
+  uploadId: 706029

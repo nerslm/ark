@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: a9fc807fa67cde04980b9d7e8edc941c
+labels:
+- Shader
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Shaders/Moon.shader
+  uploadId: 706029
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

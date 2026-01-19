@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: eebb0314253a6e04a816fd49b6e77dac
+labels:
+- Shader
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Shaders/Planet_Ring_Shadow.shader
+  uploadId: 706029
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

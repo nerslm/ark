@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 18c50f23d91e1424b90b4229a8dabf36
+labels:
+- Material
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 26903
+  packageName: Planets URP
+  packageVersion: 1.55
+  assetPath: Assets/FORGE3D/Planets/Terrestrial/Materials/Terrestrial_Atmopshere_04_A.mat
+  uploadId: 706029
